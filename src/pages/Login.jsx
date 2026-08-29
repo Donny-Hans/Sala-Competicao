@@ -129,6 +129,10 @@ export default function Login() {
             error={errors.senha}
           />
           <Button type="submit" loading={loading} fullWidth>Entrar</Button>
+          <p className="auth-switch">
+            Não tem uma conta?{' '}
+            <Link to="/registro" className="link-btn">Cadastre-se</Link>
+          </p>
           <button type="button" className="link-btn auth-link" onClick={() => setShowRecover(true)}>
             Esqueci minha senha
           </button>

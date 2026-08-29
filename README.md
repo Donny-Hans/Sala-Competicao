@@ -100,10 +100,21 @@ Isso criará:
 
 ### 3.5 Criar usuários
 
-1. Vá em **Authentication** → **Users** → **Add user**.
-2. Crie o primeiro **Administrador** (e-mail e senha), ex: `admin@escola.com`.
+Há **duas formas** de criar usuários:
 
-> O papel de `admin` ou `professor` é definido na tabela `profiles`. Veja a seção 8 para associar os usuários aos perfis.
+**A) Auto-cadastro (recomendado para o primeiro acesso):**
+1. No navegador, acesse a aplicação e clique em **"Cadastre-se"** (ou vá direto para `/registro`).
+2. Preencha nome, e-mail e senha.
+3. O sistema cria o usuário no Supabase Auth e na tabela `profiles`.
+4. **Regra automática**: o **primeiro** usuário a se cadastrar é promovido a **Administrador**; os demais entram como **Professor**.
+5. Faça login com o e-mail/senha criados.
+
+> Isso elimina a necessidade de criar SQL manual para o primeiro admin, pois o próprio sistema detecta (via função `count_profiles`) quando é o primeiro cadastro.
+
+**B) Manual (opcional):**
+1. Vá em **Authentication** → **Users** → **Add user**.
+2. Crie o usuário (e-mail e senha).
+3. Associe o perfil na tabela `profiles` (veja seção 8).
 
 ---
 
@@ -340,6 +351,7 @@ classe-ouro/
     │   └── EmptyState.jsx
     └── pages/
         ├── Login.jsx
+        ├── Registro.jsx
         ├── Dashboard.jsx
         ├── Turmas.jsx
         ├── TurmaDetalhes.jsx

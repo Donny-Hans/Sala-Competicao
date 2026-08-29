@@ -175,6 +175,20 @@ as $$
 $$;
 
 -- ------------------------------------------------------------
+-- HELPER: conta quantos perfis existem (usado no auto-registro
+-- para definir o primeiro usuário como administrador).
+-- security definer + search_path público evita expor dados.
+-- ------------------------------------------------------------
+create or replace function public.count_profiles()
+returns bigint
+language sql
+security definer
+set search_path = public
+as $$
+  select count(*) from public.profiles;
+$$;
+
+-- ------------------------------------------------------------
 -- RLS: HABILITAR RLS NAS TABELAS
 -- ------------------------------------------------------------
 alter table public.profiles enable row level security;

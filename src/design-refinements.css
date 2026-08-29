@@ -629,6 +629,29 @@ body {
 
 /* ---------- MENU DO USUÁRIO (NAVBAR) ---------- */
 
+.btn-full {
+  width: 100%;
+}
+
+/* ---------- REGISTRO / CADASTRO ---------- */
+.auth-note {
+  background: var(--primary-light);
+  border-left: 4px solid var(--primary);
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--gray-700);
+  margin-bottom: 18px;
+  line-height: 1.5;
+}
+
+.auth-switch {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 14px;
+  color: var(--gray-600);
+}
+
 /* ---------- PÁGINA DE PERFIL ---------- */
 .profile-layout {
   display: grid;

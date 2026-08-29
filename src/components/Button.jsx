@@ -8,6 +8,7 @@ export default function Button({
   type = 'button',
   loading = false,
   disabled = false,
+  fullWidth = false,
   className = '',
   onClick,
   ...props
@@ -16,6 +17,7 @@ export default function Button({
     'btn',
     `btn-${variant}`,
     `btn-${size}`,
+    fullWidth ? 'btn-full' : '',
     loading ? 'is-loading' : '',
     className
   )

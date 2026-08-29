@@ -15,6 +15,12 @@ export const authService = {
     return supabase.auth.signInWithPassword({ email, password })
   },
 
+  async countProfiles() {
+    const { data, error } = await supabase.rpc('count_profiles')
+    if (error) throw error
+    return data ?? 0
+  },
+
   async signOut() {
     return supabase.auth.signOut()
   },

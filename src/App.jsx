@@ -4,6 +4,7 @@ import { ProtectedRoute } from './routes/ProtectedRoute'
 import PublicLayout from './layouts/PublicLayout'
 import AdminLayout from './layouts/AdminLayout'
 import Login from './pages/Login'
+import Registro from './pages/Registro'
 import Dashboard from './pages/Dashboard'
 import Turmas from './pages/Turmas'
 import TurmaDetalhes from './pages/TurmaDetalhes'
@@ -27,6 +28,7 @@ function App() {
   return (
     <Routes>
       <Route path="/login" element={<PublicLayout><Login /></PublicLayout>} />
+      <Route path="/registro" element={<PublicLayout><Registro /></PublicLayout>} />
       <Route path="/regulamento" element={<PublicLayout><Regulamento /></PublicLayout>} />
 
       <Route
