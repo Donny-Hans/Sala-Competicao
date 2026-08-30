@@ -79,7 +79,7 @@ export const authService = {
   async upsertProfile(userId, data) {
     return supabase
       .from('profiles')
-      .upsert({ user_id: userId, ...data })
+      .upsert({ user_id: userId, ...data }, { onConflict: 'user_id' })
       .select()
       .single()
   },

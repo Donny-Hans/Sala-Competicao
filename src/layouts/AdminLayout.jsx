@@ -23,15 +23,39 @@ const titulos = {
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(
+    () => localStorage.getItem('classe-ouro.sidebar') === 'collapsed'
+  )
   const location = useLocation()
 
   const title = titulos[location.pathname] || 'Classe Ouro'
 
+  function toggleCollapsed() {
+    setCollapsed((prev) => {
+      const next = !prev
+      localStorage.setItem('classe-ouro.sidebar', next ? 'collapsed' : 'open')
+      return next
+    })
+  }
+
+  function handleMenuClick() {
+    if (window.matchMedia('(max-width: 992px)').matches) {
+      setSidebarOpen(true)
+    } else {
+      toggleCollapsed()
+    }
+  }
+
   return (
     <div className="app-shell">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        collapsed={collapsed}
+        onToggleCollapsed={toggleCollapsed}
+      />
       <div className="app-main">
-        <Navbar onMenuClick={() => setSidebarOpen(true)} title={title} />
+        <Navbar onMenuClick={handleMenuClick} title={title} />
         <main className="app-content">
           <Outlet />
         </main>

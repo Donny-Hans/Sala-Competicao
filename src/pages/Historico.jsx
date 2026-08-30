@@ -113,7 +113,7 @@ export default function Historico() {
     {
       header: 'Ações',
       key: 'acoes',
-      render: (c) => isAdmin ? (
+      render: (c) => (isAdmin || (c.tipo === 'penalidade' && c.professor_id === profile.id)) ? (
         <button className="btn btn-danger btn-sm" onClick={() => { setExcluir(c); setConfirmDelete(true) }}>Excluir</button>
       ) : null
     }

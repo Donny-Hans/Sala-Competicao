@@ -2,7 +2,7 @@ import React from 'react'
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
-export default function Sidebar({ open, onClose }) {
+export default function Sidebar({ open, onClose, collapsed = false, onToggleCollapsed }) {
   const { isAdmin } = useAuth()
 
   const itens = [
@@ -24,13 +24,23 @@ export default function Sidebar({ open, onClose }) {
   return (
     <>
       {open && <div className="sidebar-overlay" onClick={onClose} />}
-      <aside className={`sidebar ${open ? 'open' : ''}`}>
+      <aside className={`sidebar ${open ? 'open' : ''} ${collapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-brand">
           <span className="sidebar-logo">🏆</span>
           <div className="sidebar-brand-text">
             <strong>Classe Ouro</strong>
             <small>Competição Interclasses</small>
           </div>
+          {onToggleCollapsed && (
+            <button
+              className="sidebar-collapse"
+              onClick={onToggleCollapsed}
+              title="Ocultar menu"
+              aria-label="Ocultar menu"
+            >
+              ‹
+            </button>
+          )}
         </div>
         <nav className="sidebar-nav">
           {itens.map((item) => (

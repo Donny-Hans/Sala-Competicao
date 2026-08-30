@@ -226,6 +226,25 @@ as $$
 $$;
 
 -- ------------------------------------------------------------
+-- HELPER: checa se a aplicação de penalidade pertence ao
+-- usuário logado (usado na política de DELETE: professor pode
+-- remover as próprias aplicações; admin remove qualquer uma).
+-- ------------------------------------------------------------
+create or replace function public.is_owner_aplicacao(target uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.aplicacoes_penalidades ap
+    join public.profiles p on p.id = ap.professor_id
+    where ap.id = target and p.user_id = auth.uid() and p.ativo = true
+  );
+$$;
+
+-- ------------------------------------------------------------
 -- RLS: HABILITAR RLS NAS TABELAS
 -- ------------------------------------------------------------
 alter table public.profiles enable row level security;
@@ -267,16 +286,19 @@ create policy "turmas_select" on public.turmas
   for select using (public.is_professor());
 
 drop policy if exists "turmas_insert_admin" on public.turmas;
-create policy "turmas_insert_admin" on public.turmas
-  for insert with check (public.is_admin());
+drop policy if exists "turmas_insert_professor" on public.turmas;
+create policy "turmas_insert_professor" on public.turmas
+  for insert with check (public.is_professor());
 
 drop policy if exists "turmas_update_admin" on public.turmas;
-create policy "turmas_update_admin" on public.turmas
-  for update using (public.is_admin()) with check (public.is_admin());
+drop policy if exists "turmas_update_professor" on public.turmas;
+create policy "turmas_update_professor" on public.turmas
+  for update using (public.is_professor()) with check (public.is_professor());
 
 drop policy if exists "turmas_delete_admin" on public.turmas;
-create policy "turmas_delete_admin" on public.turmas
-  for delete using (public.is_admin());
+drop policy if exists "turmas_delete_professor" on public.turmas;
+create policy "turmas_delete_professor" on public.turmas
+  for delete using (public.is_professor());
 
 -- ------------------------------------------------------------
 -- RLS: ALUNOS
@@ -286,16 +308,19 @@ create policy "alunos_select" on public.alunos
   for select using (public.is_professor());
 
 drop policy if exists "alunos_insert_admin" on public.alunos;
-create policy "alunos_insert_admin" on public.alunos
-  for insert with check (public.is_admin());
+drop policy if exists "alunos_insert_professor" on public.alunos;
+create policy "alunos_insert_professor" on public.alunos
+  for insert with check (public.is_professor());
 
 drop policy if exists "alunos_update_admin" on public.alunos;
-create policy "alunos_update_admin" on public.alunos
-  for update using (public.is_admin()) with check (public.is_admin());
+drop policy if exists "alunos_update_professor" on public.alunos;
+create policy "alunos_update_professor" on public.alunos
+  for update using (public.is_professor()) with check (public.is_professor());
 
 drop policy if exists "alunos_delete_admin" on public.alunos;
-create policy "alunos_delete_admin" on public.alunos
-  for delete using (public.is_admin());
+drop policy if exists "alunos_delete_professor" on public.alunos;
+create policy "alunos_delete_professor" on public.alunos
+  for delete using (public.is_professor());
 
 -- ------------------------------------------------------------
 -- RLS: PERIODOS
@@ -391,8 +416,9 @@ create policy "ap_update_admin" on public.aplicacoes_penalidades
   for update using (public.is_admin()) with check (public.is_admin());
 
 drop policy if exists "ap_delete_admin" on public.aplicacoes_penalidades;
-create policy "ap_delete_admin" on public.aplicacoes_penalidades
-  for delete using (public.is_admin());
+drop policy if exists "ap_delete_professor" on public.aplicacoes_penalidades;
+create policy "ap_delete_professor" on public.aplicacoes_penalidades
+  for delete using (public.is_admin() or public.is_owner_aplicacao(id));
 
 -- ------------------------------------------------------------
 -- RLS: AUDIT_LOGS
@@ -405,6 +431,25 @@ create policy "audit_insert" on public.audit_logs
 drop policy if exists "audit_select_admin" on public.audit_logs;
 create policy "audit_select_admin" on public.audit_logs
   for select using (public.is_admin());
+
+-- ------------------------------------------------------------
+-- PERMISSÕES (GRANTs)
+-- IMPORTANTE: as políticas RLS não funcionam sem o GRANT a nível
+-- de tabela. Em projetos novos do Supabase isso costuma gerar
+-- "permission denied for schema public / permission denied for
+-- table ..." para usuários autenticados (professores/admin).
+-- O RLS continua protegendo os dados: anon sem sessão não passa
+-- em nenhuma política (is_professor/is_admin retornam false).
+-- ------------------------------------------------------------
+grant usage on schema public to anon, authenticated, service_role;
+
+grant all on all tables in schema public to anon, authenticated, service_role;
+grant all on all sequences in schema public to anon, authenticated, service_role;
+grant all on all functions in schema public to anon, authenticated, service_role;
+
+alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
 
 -- ------------------------------------------------------------
 -- DADOS INICIAIS: CRITÉRIOS (Anexo 1)

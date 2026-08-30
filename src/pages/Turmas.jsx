@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { turmaService } from '../services/turmaService'
 import { alunoService } from '../services/alunoService'
 import { useToast } from '../contexts/ToastContext'
-import { useAuth } from '../contexts/AuthContext'
 import { auditService } from '../services/auditService'
 import Button from '../components/Button'
 import Input from '../components/Input'
@@ -29,7 +28,6 @@ const estadoInicial = {
 }
 
 export default function Turmas() {
-  const { isAdmin } = useAuth()
   const { success, error } = useToast()
   const navigate = useNavigate()
 
@@ -170,12 +168,8 @@ export default function Turmas() {
       render: (t) => (
         <div className="row-actions">
           <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/turmas/${t.id}`)}>Detalhes</button>
-          {isAdmin && (
-            <>
-              <button className="btn btn-info btn-sm" onClick={() => abrirEdicao(t)}>Editar</button>
-              <button className="btn btn-danger btn-sm" onClick={() => (t.ativo ? confirmarExclusao(t) : null)}>{t.ativo ? 'Inativar' : 'Inativo'}</button>
-            </>
-          )}
+          <button className="btn btn-info btn-sm" onClick={() => abrirEdicao(t)}>Editar</button>
+          <button className="btn btn-danger btn-sm" onClick={() => (t.ativo ? confirmarExclusao(t) : null)}>{t.ativo ? 'Inativar' : 'Inativo'}</button>
         </div>
       )
     }
@@ -188,7 +182,7 @@ export default function Turmas() {
           <h1 className="page-title">Turmas</h1>
           <p className="page-subtitle">Gerenciar turmas participantes da competição.</p>
         </div>
-        {isAdmin && <Button onClick={abrirNovo}>+ Nova Turma</Button>}
+        <Button onClick={abrirNovo}>+ Nova Turma</Button>
       </div>
 
       <div className="toolbar">
@@ -209,7 +203,7 @@ export default function Turmas() {
             icon="🏫"
             title="Nenhuma turma encontrada"
             description="Cadastre a primeira turma para iniciar a competição."
-            action={isAdmin && <Button onClick={abrirNovo}>+ Nova Turma</Button>}
+            action={<Button onClick={abrirNovo}>+ Nova Turma</Button>}
           />
         )
       )}

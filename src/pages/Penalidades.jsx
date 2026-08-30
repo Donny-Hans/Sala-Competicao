@@ -157,7 +157,7 @@ export default function Penalidades() {
     {
       header: 'Ações',
       key: 'acoes',
-      render: (a) => isAdmin ? (
+      render: (a) => (isAdmin || a.professor_id === profile.id) ? (
         <button className="btn btn-danger btn-sm" onClick={() => confirmarExclusao(a)}>Excluir</button>
       ) : null
     }

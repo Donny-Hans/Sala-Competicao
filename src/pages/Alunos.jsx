@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { alunoService } from '../services/alunoService'
 import { turmaService } from '../services/turmaService'
 import { useToast } from '../contexts/ToastContext'
-import { useAuth } from '../contexts/AuthContext'
 import { auditService } from '../services/auditService'
 import Button from '../components/Button'
 import Input from '../components/Input'
@@ -20,7 +19,6 @@ import { validators } from '../utils/validators'
 const estadoInicial = { nome: '', matricula: '', turma_id: '', ativo: true }
 
 export default function Alunos() {
-  const { isAdmin } = useAuth()
   const { success, error } = useToast()
 
   const [alunos, setAlunos] = useState([])
@@ -189,16 +187,12 @@ export default function Alunos() {
       key: 'acoes',
       render: (a) => (
         <div className="row-actions">
-          {isAdmin && (
-            <>
-              <button className="btn btn-ghost btn-sm" onClick={() => { setTransferindo(a); setFormTransfer({ turma_id: '' }); setErrorsTransfer({}) }}>Transferir</button>
-              <button className="btn btn-info btn-sm" onClick={() => abrirEdicao(a)}>Editar</button>
-              <button className={`btn btn-${a.ativo ? 'warning' : 'success'} btn-sm`} onClick={() => toggleAtivo(a)}>
-                {a.ativo ? 'Desativar' : 'Ativar'}
-              </button>
-              <button className="btn btn-danger btn-sm" onClick={() => confirmarExclusao(a)}>Excluir</button>
-            </>
-          )}
+          <button className="btn btn-ghost btn-sm" onClick={() => { setTransferindo(a); setFormTransfer({ turma_id: '' }); setErrorsTransfer({}) }}>Transferir</button>
+          <button className="btn btn-info btn-sm" onClick={() => abrirEdicao(a)}>Editar</button>
+          <button className={`btn btn-${a.ativo ? 'warning' : 'success'} btn-sm`} onClick={() => toggleAtivo(a)}>
+            {a.ativo ? 'Desativar' : 'Ativar'}
+          </button>
+          <button className="btn btn-danger btn-sm" onClick={() => confirmarExclusao(a)}>Excluir</button>
         </div>
       )
     }
@@ -211,7 +205,7 @@ export default function Alunos() {
           <h1 className="page-title">Alunos</h1>
           <p className="page-subtitle">Cadastro e composição das turmas.</p>
         </div>
-        {isAdmin && <Button onClick={abrirNovo}>+ Novo Aluno</Button>}
+        <Button onClick={abrirNovo}>+ Novo Aluno</Button>
       </div>
 
       <div className="toolbar">
@@ -229,7 +223,7 @@ export default function Alunos() {
         filtrados.length > 0 ? (
           <div className="card"><Table columns={columns} data={filtrados} /></div>
         ) : (
-          <EmptyState icon="👨‍🎓" title="Nenhum aluno encontrado" description="Cadastre alunos nas turmas." action={isAdmin && <Button onClick={abrirNovo}>+ Novo Aluno</Button>} />
+          <EmptyState icon="👨‍🎓" title="Nenhum aluno encontrado" description="Cadastre alunos nas turmas." action={<Button onClick={abrirNovo}>+ Novo Aluno</Button>} />
         )
       )}
 
