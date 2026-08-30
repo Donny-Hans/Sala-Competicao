@@ -6,11 +6,16 @@ import Input from '../components/Input'
 import Button from '../components/Button'
 import { validators } from '../utils/validators'
 
+const DOMAIN = 'classe-ouro.app'
+
+function usuarioParaEmail(usuario) {
+  return `${usuario}@${DOMAIN}`
+}
+
 export default function Registro() {
-  const [form, setForm] = useState({ nome: '', email: '', senha: '', confirmar: '' })
+  const [form, setForm] = useState({ nome: '', usuario: '', senha: '', confirmar: '' })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
-  const [msgConfirmacao, setMsgConfirmacao] = useState('')
   const { success, error } = useToast()
   const navigate = useNavigate()
 
@@ -18,7 +23,7 @@ export default function Registro() {
     e.preventDefault()
     const errs = {}
     errs.nome = validators.required(form.nome, 'Nome completo')
-    errs.email = validators.email(form.email)
+    errs.usuario = validators.usuario(form.usuario)
     errs.senha = validators.password(form.senha)
     if (form.senha && form.confirmar && form.senha !== form.confirmar) {
       errs.confirmar = 'As senhas não coincidem.'
@@ -28,22 +33,11 @@ export default function Registro() {
 
     setLoading(true)
     try {
-      // 1. Cria o usuário no Supabase Auth
-      const { data, error: authError } = await authService.signUp(form.email, form.senha, {
-        nome: form.nome
-      })
-      if (authError) throw authError
-      if (!data.user) {
-        // Se o Supabase exigir confirmação de e-mail, o user pode vir vazio sem session
-        setMsgConfirmacao(
-          'Conta criada! Verifique seu e-mail para confirmar o cadastro antes de entrar.'
-        )
-        success('Conta criada! Verifique seu e-mail.')
-        setLoading(false)
-        return
-      }
+      const email = usuarioParaEmail(form.usuario)
 
-      // 2. Decide o papel: primeiro usuário vira admin, demais viram professor
+      // 1. Decide o papel ANTES do cadastro: o primeiro usuário vira admin.
+      //    (O trigger handle_new_user cria o perfil automaticamente no signup,
+      //    então precisamos contar antes para detectar o primeiro registro.)
       let role = 'professor'
       try {
         const total = await authService.countProfiles()
@@ -52,10 +46,25 @@ export default function Registro() {
         console.warn('Não foi possível contar perfis, assumindo professor:', countErr.message)
       }
 
-      // 3. Cria o perfil na tabela profiles
-      const { error: profError } = await authService.createProfile(data.user.id, {
+      // 2. Cria o usuário no Supabase Auth (e-mail interno gerado automaticamente).
+      //    O Supabase rejeita e-mails duplicados, o que garante usuários únicos.
+      const { data, error: authError } = await authService.signUp(email, form.senha, {
         nome: form.nome,
-        email: form.email,
+        usuario: form.usuario
+      })
+      if (authError) {
+        if (/already registered|already been registered|existe/i.test(authError.message)) {
+          throw new Error('Este usuário já está cadastrado. Escolha outro.')
+        }
+        throw authError
+      }
+
+      // 3. O trigger já criou o perfil com role 'professor';
+      //    aqui garantimos nome/usuario/role corretos.
+      const { error: profError } = await authService.upsertProfile(data.user.id, {
+        nome: form.nome,
+        usuario: form.usuario,
+        email,
         role,
         ativo: true
       })
@@ -66,15 +75,7 @@ export default function Registro() {
           ? 'Cadastro realizado! Você é o primeiro usuário e foi promovido a Administrador.'
           : 'Cadastro realizado com sucesso!'
       )
-
-      // 4. Se já houver sessão (e-mail confirmado automaticamente), vai para o dashboard
-      const session = await authService.getSession()
-      if (session.data.session) {
-        navigate('/dashboard')
-      } else {
-        setMsgConfirmacao('Cadastro criado! Você já pode fazer login.')
-        navigate('/login')
-      }
+      navigate('/login')
     } catch (err) {
       error(err.message || 'Erro ao criar a conta.')
     } finally {
@@ -105,12 +106,11 @@ export default function Registro() {
             error={errors.nome}
           />
           <Input
-            label="E-mail"
-            type="email"
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-            placeholder="seu@email.com"
-            error={errors.email}
+            label="Nome de usuário"
+            value={form.usuario}
+            onChange={(e) => setForm({ ...form, usuario: e.target.value })}
+            placeholder="Ex: prof.carla"
+            error={errors.usuario}
           />
           <Input
             label="Senha"
@@ -128,7 +128,6 @@ export default function Registro() {
             placeholder="Repita a senha"
             error={errors.confirmar}
           />
-          {msgConfirmacao && <p className="auth-success">{msgConfirmacao}</p>}
           <Button type="submit" loading={loading} fullWidth>Cadastrar</Button>
           <p className="auth-switch">
             Já tem uma conta?{' '}

@@ -51,6 +51,16 @@ export const authService = {
       .maybeSingle()
   },
 
+  async getProfileByUsuario(usuario) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('usuario', usuario)
+      .maybeSingle()
+    if (error) throw error
+    return data
+  },
+
   async listProfessores() {
     return supabase
       .from('profiles')
@@ -62,6 +72,23 @@ export const authService = {
     return supabase
       .from('profiles')
       .insert([{ user_id: userId, ...data }])
+      .select()
+      .single()
+  },
+
+  async upsertProfile(userId, data) {
+    return supabase
+      .from('profiles')
+      .upsert({ user_id: userId, ...data })
+      .select()
+      .single()
+  },
+
+  async updateProfileByUserId(userId, data) {
+    return supabase
+      .from('profiles')
+      .update(data)
+      .eq('user_id', userId)
       .select()
       .single()
   },

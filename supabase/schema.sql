@@ -16,11 +16,48 @@ create table if not exists public.profiles (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid unique not null references auth.users(id) on delete cascade,
   nome text not null,
+  usuario text unique,
   email text not null,
   role text not null default 'professor' check (role in ('admin','professor')),
   ativo boolean not null default true,
   created_at timestamptz not null default now()
 );
+
+-- Migração: adiciona a coluna "usuario" caso a tabela já exista sem ela.
+alter table public.profiles add column if not exists usuario text unique;
+
+-- ------------------------------------------------------------
+-- TRIGGER: cria automaticamente um perfil quando um novo
+-- usuário se cadastra no Supabase Auth (auth.users).
+-- Evita o erro "Database error querying schema" causado pelo
+-- trigger padrão do Supabase, que tenta inserir em profiles
+-- sem preencher as colunas obrigatórias.
+-- ------------------------------------------------------------
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (user_id, nome, usuario, email, role, ativo)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data->>'nome', 'Usuario'),
+    coalesce(new.raw_user_meta_data->>'usuario', split_part(new.email, '@', 1)),
+    new.email,
+    'professor',
+    true
+  )
+  on conflict (user_id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
 
 -- ------------------------------------------------------------
 -- TABELA: turmas
@@ -211,7 +248,11 @@ create policy "profiles_select_own" on public.profiles
 
 drop policy if exists "profiles_insert_own" on public.profiles;
 create policy "profiles_insert_own" on public.profiles
-  for insert with check (auth.uid() = user_id);
+  for insert with check (auth.uid() = user_id or public.is_admin());
+
+drop policy if exists "profiles_update_own" on public.profiles;
+create policy "profiles_update_own" on public.profiles
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 drop policy if exists "profiles_update_admin" on public.profiles;
 create policy "profiles_update_admin" on public.profiles

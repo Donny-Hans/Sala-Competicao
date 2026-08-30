@@ -33,6 +33,8 @@ export default function Alunos() {
   const [transferindo, setTransferindo] = useState(null)
   const [form, setForm] = useState(estadoInicial)
   const [errors, setErrors] = useState({})
+  const [formTransfer, setFormTransfer] = useState({ turma_id: '' })
+  const [errorsTransfer, setErrorsTransfer] = useState({})
   const [saving, setSaving] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [remover, setRemover] = useState(null)
@@ -115,21 +117,23 @@ export default function Alunos() {
 
   async function handleTransfer(e) {
     e.preventDefault()
-    if (!form.turma_id) {
-      setErrors({ turma_id: 'Selecione a turma de destino.' })
+    if (!formTransfer.turma_id) {
+      setErrorsTransfer({ turma_id: 'Selecione a turma de destino.' })
       return
     }
     setSaving(true)
     try {
       const anterior = transferindo
-      await alunoService.transferir(transferindo.id, form.turma_id)
+      await alunoService.transferir(transferindo.id, formTransfer.turma_id)
       await auditService.registrar({
         acao: `Aluno "${transferindo.nome}" transferido de turma`,
         tabela: 'alunos', registroId: transferindo.id, tipoOperacao: 'UPDATE',
-        dadosAnteriores: anterior, dadosNovos: { ...anterior, turma_id: form.turma_id }
+        dadosAnteriores: anterior, dadosNovos: { ...anterior, turma_id: formTransfer.turma_id }
       })
       success('Aluno transferido com sucesso!')
       setTransferindo(null)
+      setFormTransfer({ turma_id: '' })
+      setErrorsTransfer({})
       load()
     } catch (err) {
       error(err.message)
@@ -187,7 +191,7 @@ export default function Alunos() {
         <div className="row-actions">
           {isAdmin && (
             <>
-              <button className="btn btn-ghost btn-sm" onClick={() => setTransferindo(a)}>Transferir</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => { setTransferindo(a); setFormTransfer({ turma_id: '' }); setErrorsTransfer({}) }}>Transferir</button>
               <button className="btn btn-info btn-sm" onClick={() => abrirEdicao(a)}>Editar</button>
               <button className={`btn btn-${a.ativo ? 'warning' : 'success'} btn-sm`} onClick={() => toggleAtivo(a)}>
                 {a.ativo ? 'Desativar' : 'Ativar'}
@@ -249,9 +253,9 @@ export default function Alunos() {
             </p>
             <Select
               label="Nova turma"
-              value={form.turma_id}
-              onChange={(e) => setForm({ ...form, turma_id: e.target.value })}
-              error={errors.turma_id}
+              value={formTransfer.turma_id}
+              onChange={(e) => setFormTransfer({ turma_id: e.target.value })}
+              error={errorsTransfer.turma_id}
               options={turmas.map((t) => ({ value: t.id, label: `${t.nome} - ${t.serie}` }))}
               placeholder="Selecione a turma de destino"
             />

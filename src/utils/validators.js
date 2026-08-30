@@ -13,6 +13,16 @@ export const validators = {
     return null
   },
 
+  usuario(value) {
+    if (!value) return 'Informe o nome de usuário.'
+    const re = /^[a-zA-Z0-9._-]+$/
+    if (!re.test(value)) {
+      return 'Usuário inválido. Use apenas letras, números, ponto, traço ou sublinhado.'
+    }
+    if (value.length < 3) return 'O usuário deve ter pelo menos 3 caracteres.'
+    return null
+  },
+
   password(value) {
     if (!value) return 'Informe a senha.'
     if (value.length < 6) return 'A senha deve ter pelo menos 6 caracteres.'

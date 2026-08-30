@@ -15,13 +15,19 @@ import SearchInput from '../components/SearchInput'
 import { formatDate } from '../utils/format'
 import { validators } from '../utils/validators'
 
+const DOMAIN = 'classe-ouro.app'
+
+function usuarioParaEmail(usuario) {
+  return `${usuario}@${DOMAIN}`
+}
+
 export default function Professores() {
   const { success, error } = useToast()
   const [professores, setProfessores] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
-  const [form, setForm] = useState({ nome: '', email: '', senha: '', role: 'professor' })
+  const [form, setForm] = useState({ nome: '', usuario: '', senha: '', role: 'professor' })
   const [errors, setErrors] = useState({})
   const [saving, setSaving] = useState(false)
 
@@ -41,31 +47,37 @@ export default function Professores() {
   useEffect(() => { load() }, [load])
 
   const filtrados = professores.filter((p) =>
-    !search || p.nome.toLowerCase().includes(search.toLowerCase()) || p.email.toLowerCase().includes(search.toLowerCase())
+    !search || p.nome.toLowerCase().includes(search.toLowerCase()) || (p.usuario || '').toLowerCase().includes(search.toLowerCase())
   )
 
   async function handleCreate(e) {
     e.preventDefault()
     const errs = {}
     errs.nome = validators.required(form.nome, 'Nome')
-    errs.email = validators.email(form.email)
+    errs.usuario = validators.usuario(form.usuario)
     errs.senha = validators.password(form.senha)
     setErrors(errs)
     if (Object.values(errs).some(Boolean)) return
 
     setSaving(true)
     try {
-      const { data: authData, error: authError } = await authService.signUp(form.email, form.senha, { nome: form.nome, role: form.role })
-      if (authError) throw authError
+      const email = usuarioParaEmail(form.usuario)
+      const { data: authData, error: authError } = await authService.signUp(email, form.senha, { nome: form.nome, usuario: form.usuario, role: form.role })
+      if (authError) {
+        if (/already registered|already been registered|existe/i.test(authError.message)) {
+          throw new Error('Este usuário já está cadastrado. Escolha outro.')
+        }
+        throw authError
+      }
 
       if (!authData.user) {
-        // verificação de e-mail obrigatória - cria profile com id do user se disponível
         throw new Error('Não foi possível criar o usuário. Verifique as configurações de autenticação do Supabase.')
       }
 
-      const { error: profError } = await authService.createProfile(authData.user.id, {
+      const { error: profError } = await authService.upsertProfile(authData.user.id, {
         nome: form.nome,
-        email: form.email,
+        usuario: form.usuario,
+        email,
         role: form.role,
         ativo: true
       })
@@ -78,7 +90,7 @@ export default function Professores() {
 
       success('Professor cadastrado com sucesso!')
       setModalOpen(false)
-      setForm({ nome: '', email: '', senha: '', role: 'professor' })
+      setForm({ nome: '', usuario: '', senha: '', role: 'professor' })
       load()
     } catch (err) {
       error(err.message)
@@ -117,7 +129,7 @@ export default function Professores() {
 
   const columns = [
     { header: 'Nome', key: 'nome' },
-    { header: 'E-mail', key: 'email' },
+    { header: 'Usuário', key: 'usuario' },
     { header: 'Perfil', key: 'role', render: (p) => (
       <Badge color={p.role === 'admin' ? 'primary' : 'info'}>{p.role === 'admin' ? 'Administrador' : 'Professor'}</Badge>
     ) },
@@ -158,10 +170,10 @@ export default function Professores() {
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Novo Professor">
         <form onSubmit={handleCreate} className="modal-form">
           <Input label="Nome completo" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} error={errors.nome} />
-          <Input label="E-mail" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} error={errors.email} />
+          <Input label="Nome de usuário" value={form.usuario} onChange={(e) => setForm({ ...form, usuario: e.target.value })} error={errors.usuario} placeholder="Ex: prof.carla" />
           <Input label="Senha inicial" type="password" value={form.senha} onChange={(e) => setForm({ ...form, senha: e.target.value })} error={errors.senha} hint="Mínimo de 6 caracteres" />
           <Select label="Perfil" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} options={['professor', 'admin']} />
-          <p className="info-note">O usuário receberá e-mail de confirmação do Supabase para ativar a conta.</p>
+          <p className="info-note">O usuário acessará o sistema com o nome de usuário e a senha definidos.</p>
           <div className="form-actions">
             <Button variant="ghost" onClick={() => setModalOpen(false)}>Cancelar</Button>
             <Button type="submit" loading={saving}>Cadastrar professor</Button>

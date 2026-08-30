@@ -7,14 +7,17 @@ import Input from '../components/Input'
 import Button from '../components/Button'
 import { validators } from '../utils/validators'
 
+const DOMAIN = 'classe-ouro.app'
+
+function usuarioParaEmail(usuario) {
+  return `${usuario}@${DOMAIN}`
+}
+
 export default function Login() {
-  const [email, setEmail] = useState('')
+  const [usuario, setUsuario] = useState('')
   const [senha, setSenha] = useState('')
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
-  const [showRecover, setShowRecover] = useState(false)
-  const [recoverEmail, setRecoverEmail] = useState('')
-  const [recoverMsg, setRecoverMsg] = useState('')
   const { success, error } = useToast()
   const navigate = useNavigate()
   const { setProfile } = useAuth()
@@ -22,13 +25,14 @@ export default function Login() {
   async function handleSubmit(e) {
     e.preventDefault()
     const errs = {}
-    errs.email = validators.email(email)
+    errs.usuario = validators.usuario(usuario)
     errs.senha = validators.password(senha)
     setErrors(errs)
-    if (errs.email || errs.senha) return
+    if (errs.usuario || errs.senha) return
 
     setLoading(true)
     try {
+      const email = usuarioParaEmail(usuario.trim())
       const { data, error: authError } = await authService.signIn(email, senha)
       if (authError) throw authError
 
@@ -47,59 +51,10 @@ export default function Login() {
       success('Login realizado com sucesso!')
       navigate('/dashboard')
     } catch (err) {
-      error(err.message || 'Erro ao fazer login. Verifique e-mail e senha.')
+      error(err.message || 'Erro ao fazer login. Verifique usuário e senha.')
     } finally {
       setLoading(false)
     }
-  }
-
-  async function handleRecover(e) {
-    e.preventDefault()
-    const err = validators.email(recoverEmail)
-    if (err) {
-      setErrors({ recoverEmail: err })
-      return
-    }
-    setLoading(true)
-    try {
-      await authService.resetPassword(recoverEmail)
-      setRecoverMsg('Enviamos um link de recuperação para o seu e-mail.')
-      success('Link de recuperação enviado!')
-    } catch (err) {
-      error(err.message || 'Erro ao enviar link de recuperação.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (showRecover) {
-    return (
-      <div className="auth-wrap">
-        <div className="auth-card">
-          <div className="auth-brand">
-            <span className="auth-logo">🏆</span>
-            <h1>Classe Ouro</h1>
-            <p>Competição Interclasses</p>
-          </div>
-          <form onSubmit={handleRecover}>
-            <h2 className="auth-title">Recuperar senha</h2>
-            <Input
-              label="E-mail"
-              type="email"
-              value={recoverEmail}
-              onChange={(e) => setRecoverEmail(e.target.value)}
-              placeholder="seu@email.com"
-              error={errors.recoverEmail}
-            />
-            {recoverMsg && <p className="auth-success">{recoverMsg}</p>}
-            <Button type="submit" loading={loading} fullWidth>Enviar link</Button>
-            <button className="link-btn auth-link" onClick={() => { setShowRecover(false); setRecoverMsg('') }}>
-              Voltar ao login
-            </button>
-          </form>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -113,12 +68,11 @@ export default function Login() {
         <form onSubmit={handleSubmit}>
           <h2 className="auth-title">Entrar no sistema</h2>
           <Input
-            label="E-mail"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="seu@email.com"
-            error={errors.email}
+            label="Nome de usuário"
+            value={usuario}
+            onChange={(e) => setUsuario(e.target.value)}
+            placeholder="Ex: prof.carla"
+            error={errors.usuario}
           />
           <Input
             label="Senha"
@@ -133,9 +87,6 @@ export default function Login() {
             Não tem uma conta?{' '}
             <Link to="/registro" className="link-btn">Cadastre-se</Link>
           </p>
-          <button type="button" className="link-btn auth-link" onClick={() => setShowRecover(true)}>
-            Esqueci minha senha
-          </button>
           <Link to="/regulamento" className="link-btn auth-link">
             Ver regulamento
           </Link>

@@ -39,8 +39,7 @@ export default function Perfil() {
       <div className="profile-layout">
         <div className="card profile-card">
           <div className="profile-header">
-            <div className="profile-avatar">{initials(profile?.nome || user?.email)}</div>
-            <div>
+            <div className="profile-avatar">{initials(profile?.nome || user?.email)}</div>            <div>
               <h2 className="profile-name">{profile?.nome || 'Usuário'}</h2>
               <Badge color={isAdmin ? 'primary' : 'info'}>
                 {isAdmin ? 'Administrador' : 'Professor'}
@@ -54,8 +53,8 @@ export default function Perfil() {
               <span className="profile-value">{profile?.nome || '-'}</span>
             </div>
             <div className="profile-detail">
-              <span className="profile-label">E-mail</span>
-              <span className="profile-value">{user?.email || profile?.email || '-'}</span>
+              <span className="profile-label">Nome de usuário</span>
+              <span className="profile-value">{profile?.usuario || user?.email || '-'}</span>
             </div>
             <div className="profile-detail">
               <span className="profile-label">Perfil de acesso</span>
