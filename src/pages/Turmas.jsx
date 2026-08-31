@@ -42,6 +42,8 @@ export default function Turmas() {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [remover, setRemover] = useState(null)
   const [contagemAlunos, setContagemAlunos] = useState({})
+  const [toggleLoading, setToggleLoading] = useState(false)
+  const [bloqueado, setBloqueado] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -131,12 +133,41 @@ export default function Turmas() {
   }
 
   function confirmarExclusao(turma) {
+    setBloqueado((contagemAlunos[turma.id] || 0) > 0)
     setRemover(turma)
     setConfirmOpen(true)
   }
 
+  async function handleToggleStatus(turma) {
+    setToggleLoading(true)
+    try {
+      await turmaService.alternarStatus(turma.id, !turma.ativo)
+      const acao = turma.ativo ? 'inativada' : 'reativada'
+      await auditService.registrar({
+        acao: `Turma "${turma.nome}" ${acao}`,
+        tabela: 'turmas',
+        registroId: turma.id,
+        tipoOperacao: 'UPDATE',
+        dadosAnteriores: { ativo: turma.ativo },
+        dadosNovos: { ativo: !turma.ativo }
+      })
+      success(`Turma ${acao} com sucesso!`)
+      const data = await turmaService.listar()
+      setTurmas(data)
+    } catch (err) {
+      error(err.message || 'Erro ao alterar o status da turma.')
+    } finally {
+      setToggleLoading(false)
+    }
+  }
+
   async function handleDelete() {
     if (!remover) return
+    if ((contagemAlunos[remover.id] || 0) > 0) {
+      error('Não é possível excluir: existem alunos vinculados a esta turma.')
+      setConfirmOpen(false)
+      return
+    }
     try {
       await turmaService.excluir(remover.id)
       await auditService.registrar({
@@ -169,7 +200,12 @@ export default function Turmas() {
         <div className="row-actions">
           <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/turmas/${t.id}`)}>Detalhes</button>
           <button className="btn btn-info btn-sm" onClick={() => abrirEdicao(t)}>Editar</button>
-          <button className="btn btn-danger btn-sm" onClick={() => (t.ativo ? confirmarExclusao(t) : null)}>{t.ativo ? 'Inativar' : 'Inativo'}</button>
+          {t.ativo ? (
+            <button className="btn btn-warning btn-sm" disabled={toggleLoading} onClick={() => handleToggleStatus(t)}>Inativar</button>
+          ) : (
+            <button className="btn btn-ghost btn-sm" disabled={toggleLoading} onClick={() => handleToggleStatus(t)}>Reativar</button>
+          )}
+          <button className="btn btn-danger btn-sm" onClick={() => confirmarExclusao(t)}>Excluir</button>
         </div>
       )
     }
@@ -270,9 +306,12 @@ export default function Turmas() {
         onClose={() => setConfirmOpen(false)}
         onConfirm={handleDelete}
         title="Excluir turma?"
-        message={`Tem certeza que deseja excluir a turma "${remover?.nome}"? Essa ação não pode ser desfeita.`}
+        message={bloqueado
+          ? `A turma "${remover?.nome}" possui ${contagemAlunos[remover?.id] || 0} aluno(s) vinculado(s). Transfira ou remova os alunos antes de excluir.`
+          : `Tem certeza que deseja excluir a turma "${remover?.nome}"? Essa ação não pode ser desfeita.`}
         confirmText="Excluir"
         danger
+        disabled={bloqueado}
       />
     </div>
   )

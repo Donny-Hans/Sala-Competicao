@@ -11,7 +11,8 @@ export default function ConfirmDialog({
   confirmText = 'Confirmar',
   cancelText = 'Cancelar',
   danger = false,
-  loading = false
+  loading = false,
+  disabled = false
 }) {
   return (
     <Modal open={open} onClose={onClose} title={title} size="sm">
@@ -25,6 +26,7 @@ export default function ConfirmDialog({
             variant={danger ? 'danger' : 'primary'}
             onClick={onConfirm}
             loading={loading}
+            disabled={disabled}
           >
             {confirmText}
           </Button>

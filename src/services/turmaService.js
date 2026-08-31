@@ -51,6 +51,17 @@ export const turmaService = {
     return data
   },
 
+  async alternarStatus(id, ativo) {
+    const { data, error } = await supabase
+      .from('turmas')
+      .update({ ativo })
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+
   async excluir(id) {
     const { error } = await supabase.from('turmas').delete().eq('id', id)
     if (error) throw error
