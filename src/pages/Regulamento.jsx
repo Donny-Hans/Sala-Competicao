@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 const pilares = [
   { nome: 'Organização', limite: 100, itens: [['Zeladoria', 50], ['Cuidado com o patrimônio', 50]] },
   { nome: 'Disciplina', limite: 150, itens: [['Pontualidade', 20], ['Mapeamento', null], ['Uso do uniforme', 10], ['Comportamento', 50], ['Assiduidade', 20], ['Uso de aparelhos eletrônicos', null]] },
-  { nome: 'Realização de Atividades', limite: 150, itens: [['Deveres de casa', 50], ['Trabalhos em grupo', 50], ['Participação em eventos', 50]] },
+  { nome: 'Realização de Atividades', limite: 150, itens: [['Atividades de sala', 50], ['Trabalhos em grupo', 50], ['Participação em eventos', 50]] },
   { nome: 'Relacionamento entre Estudantes', limite: 150, itens: [['Acolhimento de todos os colegas', 50], ['Ausência de conflitos graves ou bullying', 50], ['Solidariedade com os colegas', 50]] },
   { nome: 'Relacionamento com Professor', limite: 150, itens: [['Respeito aos professores', 50], ['Cordialidade com os professores', 50], ['Colaboração com os professores', 50]] },
   { nome: 'Notas nas Avaliações', limite: 300, itens: [['Média da turma', 100], ['Evolução', 100], ['Recuperação', 100]] }

@@ -510,7 +510,7 @@ insert into public.criterios (nome, categoria, pontos_maximos) values
 ('Uso do uniforme', 'Disciplina', 10),
 ('Comportamento', 'Disciplina', 50),
 ('Assiduidade', 'Disciplina', 20),
-('Deveres de casa', 'Atividades', 50),
+('Atividades de sala', 'Atividades', 50),
 ('Trabalhos em grupo', 'Atividades', 50),
 ('Participação em eventos', 'Atividades', 50),
 ('Acolhimento de todos os colegas', 'Relacionamento', 50),
