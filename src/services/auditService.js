@@ -37,12 +37,14 @@ export const auditService = {
     return data
   },
 
-  async listarMeus(userId) {
+  async listarMeus(profileId, limite = 200) {
+    if (!profileId) return []
     const { data, error } = await supabase
       .from('audit_logs')
-      .select('*')
-      .eq('user_id', userId)
+      .select('*, profiles(nome, email)')
+      .eq('user_id', profileId)
       .order('created_at', { ascending: false })
+      .limit(limite)
     if (error) throw error
     return data
   }

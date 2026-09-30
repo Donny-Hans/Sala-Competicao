@@ -226,9 +226,25 @@ as $$
 $$;
 
 -- ------------------------------------------------------------
+-- HELPER: retorna o id do perfil (profiles.id) do usuário logado.
+-- Usado nas políticas de SELECT do audit_logs para o professor
+-- enxergar apenas os próprios registros de auditoria.
+-- ------------------------------------------------------------
+create or replace function public.current_profile_id()
+returns uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select p.id from public.profiles p where p.user_id = auth.uid() and p.ativo = true limit 1;
+$$;
+
+-- ------------------------------------------------------------
 -- HELPER: checa se a aplicação de penalidade pertence ao
--- usuário logado (usado na política de DELETE: professor pode
--- remover as próprias aplicações; admin remove qualquer uma).
+-- usuário logado (usado nas políticas de UPDATE/DELETE: professor
+-- pode alterar/remover as próprias aplicações; admin remove
+-- qualquer uma).
 -- ------------------------------------------------------------
 create or replace function public.is_owner_aplicacao(target uuid)
 returns boolean
@@ -241,6 +257,26 @@ as $$
     from public.aplicacoes_penalidades ap
     join public.profiles p on p.id = ap.professor_id
     where ap.id = target and p.user_id = auth.uid() and p.ativo = true
+  );
+$$;
+
+-- ------------------------------------------------------------
+-- HELPER: checa se o lançamento de pontos pertence ao usuário
+-- logado (usado nas políticas de UPDATE/DELETE: professor pode
+-- alterar/remover apenas os próprios lançamentos; admin remove
+-- qualquer um).
+-- ------------------------------------------------------------
+create or replace function public.is_owner_pontuacao(target uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.pontuacoes po
+    join public.profiles p on p.id = po.professor_id
+    where po.id = target and p.user_id = auth.uid() and p.ativo = true
   );
 $$;
 
@@ -381,7 +417,8 @@ create policy "penalidades_delete_admin" on public.penalidades
 
 -- ------------------------------------------------------------
 -- RLS: PONTUACOES
--- Professores podem inserir; apenas admin pode alterar/excluir.
+-- Professores podem inserir e alterar/excluir apenas os PRÓPRIOS
+-- lançamentos; admin altera/exclui qualquer um.
 -- ------------------------------------------------------------
 drop policy if exists "pontuacoes_select" on public.pontuacoes;
 create policy "pontuacoes_select" on public.pontuacoes
@@ -392,16 +429,20 @@ create policy "pontuacoes_insert" on public.pontuacoes
   for insert with check (public.is_professor());
 
 drop policy if exists "pontuacoes_update_admin" on public.pontuacoes;
-create policy "pontuacoes_update_admin" on public.pontuacoes
-  for update using (public.is_admin()) with check (public.is_admin());
+drop policy if exists "pontuacoes_update_professor" on public.pontuacoes;
+create policy "pontuacoes_update_professor" on public.pontuacoes
+  for update using (public.is_admin() or public.is_owner_pontuacao(id))
+  with check (public.is_admin() or public.is_owner_pontuacao(id));
 
 drop policy if exists "pontuacoes_delete_admin" on public.pontuacoes;
-create policy "pontuacoes_delete_admin" on public.pontuacoes
-  for delete using (public.is_admin());
+drop policy if exists "pontuacoes_delete_professor" on public.pontuacoes;
+create policy "pontuacoes_delete_professor" on public.pontuacoes
+  for delete using (public.is_admin() or public.is_owner_pontuacao(id));
 
 -- ------------------------------------------------------------
 -- RLS: APLICACOES_PENALIDADES
--- Professores podem inserir; apenas admin pode alterar/excluir.
+-- Professores podem inserir e alterar/excluir apenas as PRÓPRIAS
+-- aplicações; admin altera/exclui qualquer uma.
 -- ------------------------------------------------------------
 drop policy if exists "ap_select" on public.aplicacoes_penalidades;
 create policy "ap_select" on public.aplicacoes_penalidades
@@ -412,8 +453,10 @@ create policy "ap_insert" on public.aplicacoes_penalidades
   for insert with check (public.is_professor());
 
 drop policy if exists "ap_update_admin" on public.aplicacoes_penalidades;
-create policy "ap_update_admin" on public.aplicacoes_penalidades
-  for update using (public.is_admin()) with check (public.is_admin());
+drop policy if exists "ap_update_professor" on public.aplicacoes_penalidades;
+create policy "ap_update_professor" on public.aplicacoes_penalidades
+  for update using (public.is_admin() or public.is_owner_aplicacao(id))
+  with check (public.is_admin() or public.is_owner_aplicacao(id));
 
 drop policy if exists "ap_delete_admin" on public.aplicacoes_penalidades;
 drop policy if exists "ap_delete_professor" on public.aplicacoes_penalidades;
@@ -422,7 +465,9 @@ create policy "ap_delete_professor" on public.aplicacoes_penalidades
 
 -- ------------------------------------------------------------
 -- RLS: AUDIT_LOGS
--- Qualquer professor logado grava; apenas admin lê todos.
+-- Qualquer professor logado grava; admin lê todos e professor lê
+-- apenas os próprios registros (rastreabilidade de quem lançou e
+-- quem excluiu cada lançamento).
 -- ------------------------------------------------------------
 drop policy if exists "audit_insert" on public.audit_logs;
 create policy "audit_insert" on public.audit_logs
@@ -431,6 +476,10 @@ create policy "audit_insert" on public.audit_logs
 drop policy if exists "audit_select_admin" on public.audit_logs;
 create policy "audit_select_admin" on public.audit_logs
   for select using (public.is_admin());
+
+drop policy if exists "audit_select_own" on public.audit_logs;
+create policy "audit_select_own" on public.audit_logs
+  for select using (public.is_professor() and user_id = public.current_profile_id());
 
 -- ------------------------------------------------------------
 -- PERMISSÕES (GRANTs)

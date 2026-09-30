@@ -233,9 +233,9 @@ O arquivo `schema.sql` já insere:
 - **Nunca publique o `.env`** — ele contém credenciais.
 - **Use apenas a chave `anon`/public** no frontend. NUNCA use a `service_role key`.
 - **RLS (Row Level Security)** está habilitado em todas as tabelas, protegendo os dados no nível do banco de dados — não apenas na interface.
-- **Controle de permissões**: apenas administradores podem alterar/excluir dados cadastrais, configurações e lançamentos. Professores só inserem pontuações e penalidades.
+- **Controle de permissões**: apenas administradores alteram/excluem dados cadastrais e configurações. Lançamentos de pontos e penalidades seguem a regra de **autoria**: o professor edita e exclui **apenas o que ele mesmo lançou**; o administrador edita e exclui qualquer lançamento.
 - **Não confie somente no frontend**: além das validações no React, o banco possui validações e RLS.
-- **Auditoria**: toda operação registra um log na tabela `audit_logs` (usuário, ação, tabela, dados anteriores/novos, data/hora).
+- **Auditoria**: toda operação registra um log na tabela `audit_logs` (usuário, ação, tabela, dados anteriores/novos, data/hora). Cada lançamento guarda o **professor que o criou** (`professor_id`) e cada exclusão fica registrada com o **nome de quem excluiu** — o administrador vê todos os logs em **Configurações**, e cada professor vê os próprios na seção **"Minhas alterações"** da página **Histórico**.
 
 ---
 
@@ -379,11 +379,11 @@ classe-ouro/
 - **Turmas** e **alunos**: CRUD completo, com ativar/desativar e transferência de alunos.
 - **Períodos**: cadastro das etapas da competição.
 - **Critérios**: tabela oficial (Anexo 1) configurável pelo administrador.
-- **Pontuações**: lançamento de pontos positivos com validação do limite por critério/período (direto no banco).
+- **Pontuações**: lançamento de pontos positivos com validação do limite por critério/período (direto no banco), lista dos lançamentos com edição/exclusão pelo próprio professor.
 - **Penalidades**: aplicação com confirmação e controle por tipo/limite.
 - **Ranking**: total = pontos positivos + penalidades, com filtros e podium.
-- **Histórico**: todos os lançamentos com filtros e busca.
-- **Auditoria**: trilha completa de todas as operações.
+- **Histórico**: todos os lançamentos com filtros, busca, edição/exclusão e a seção "Minhas alterações" (rastreabilidade de quem lançou e quem excluiu).
+- **Auditoria**: trilha completa de todas as operações (visível ao admin em Configurações e ao professor na sua própria lista).
 - **Premiação**: tela especial para a turma campeã ("Classe Ouro" + pizza 🍕).
 - **Regulamento**: página pública e organizada.
 - **Relatórios**: impressão e exportação CSV do ranking.

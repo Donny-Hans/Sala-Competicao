@@ -73,6 +73,17 @@ export const penalidadeService = {
     if (error) throw error
   },
 
+  async atualizarAplicacao(id, dados) {
+    const { data, error } = await supabase
+      .from('aplicacoes_penalidades')
+      .update(dados)
+      .eq('id', id)
+      .select('*, turmas(nome), periodos(nome), penalidades(nome), profiles(nome)')
+      .single()
+    if (error) throw error
+    return data
+  },
+
   async totalPenalidadesAplicadas() {
     const { data, error } = await supabase
       .from('aplicacoes_penalidades')

@@ -23,7 +23,8 @@
 ## Rotas e permissões
 
 - `src/App.jsx` define as rotas; `src/routes/ProtectedRoute.jsx` protege (usa `adminOnly` prop). Páginas só-admin: `/professores`, `/criterios`, `/configuracoes`. Professores/logados veem as demais.
-- Roles: `admin` (tudo) e `professor` (lê, registra pontuações/penalidades). O backend (RLS) é a autoridade real; front apenas esconde rotas.
+- Roles: `admin` (tudo) e `professor`. O backend (RLS) é a autoridade real; front apenas esconde rotas.
+- **Lançamentos seguem regra de autoria:** `pontuacoes` e `aplicacoes_penalidades` usam as funções `is_owner_pontuacao(id)` / `is_owner_aplicacao(id)` nas policies de UPDATE e DELETE — o professor só edita/exclui o que lançou (`professor_id`), o admin edita/exclui qualquer um. `audit_logs` tem `audit_select_admin` (tudo) e `audit_select_own` (só o próprio professor, via `current_profile_id()`). Ao mexer nessas regras, atualize `supabase/schema.sql` **e** o `Historico.jsx`/`Pontuacoes.jsx`/`Penalidades.jsx` juntos — o front só esconde o botão, mas uma query que passa no front ainda é barrada pelo RLS.
 
 ## Gotchas operacionais do Supabase (configuração no painel, não no código)
 

@@ -38,6 +38,17 @@ export const pontuacaoService = {
     if (error) throw error
   },
 
+  async atualizar(id, dados) {
+    const { data, error } = await supabase
+      .from('pontuacoes')
+      .update(dados)
+      .eq('id', id)
+      .select('*, turmas(nome), periodos(nome), criterios(nome), profiles(nome)')
+      .single()
+    if (error) throw error
+    return data
+  },
+
   async somaPorCriterio(turmaId, periodoId) {
     let query = supabase
       .from('pontuacoes')

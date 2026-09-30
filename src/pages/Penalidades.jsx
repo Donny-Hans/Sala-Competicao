@@ -43,6 +43,11 @@ export default function Penalidades() {
   const [dadosConfirmacao, setDadosConfirmacao] = useState({})
   const [excluir, setExcluir] = useState(null)
   const [confirmExcluir, setConfirmExcluir] = useState(false)
+  const [editando, setEditando] = useState(null)
+  const [editForm, setEditForm] = useState(estadoInicial)
+  const [editErrors, setEditErrors] = useState({})
+  const [modalEdicao, setModalEdicao] = useState(false)
+  const [savingEdicao, setSavingEdicao] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -133,7 +138,7 @@ export default function Penalidades() {
     try {
       await penalidadeService.excluir(excluir.id)
       await auditService.registrar({
-        acao: `Penalidade excluída para ${excluir.turmas?.nome}`,
+        acao: `${profile.nome} excluiu a penalidade de ${excluir.pontos} pontos (${excluir.penalidades?.nome || ''}) da turma ${excluir.turmas?.nome || ''}, lançada por ${excluir.profiles?.nome || '—'}`,
         tabela: 'aplicacoes_penalidades',
         registroId: excluir.id,
         tipoOperacao: 'DELETE',
@@ -144,6 +149,63 @@ export default function Penalidades() {
       load()
     } catch (err) {
       error(err.message)
+    }
+  }
+
+  function abrirEdicao(ap) {
+    setEditando(ap)
+    setEditForm({
+      turma_id: ap.turma_id,
+      periodo_id: ap.periodo_id,
+      penalidade_id: ap.penalidade_id,
+      data_aplicacao: ap.data_aplicacao,
+      descricao: ap.descricao || '',
+      observacao: ap.observacao || ''
+    })
+    setEditErrors({})
+    setModalEdicao(true)
+  }
+
+  const penalidadeEdit = catalogo.find((p) => p.id === editForm.penalidade_id)
+
+  async function handleSalvarEdicao(e) {
+    e.preventDefault()
+    const errs = {}
+    errs.turma_id = validators.required(editForm.turma_id, 'Turma')
+    errs.periodo_id = validators.required(editForm.periodo_id, 'Período')
+    errs.penalidade_id = validators.required(editForm.penalidade_id, 'Penalidade')
+    errs.data_aplicacao = validators.required(editForm.data_aplicacao, 'Data')
+    setEditErrors(errs)
+    if (Object.values(errs).some(Boolean)) return
+
+    const payload = {
+      turma_id: editForm.turma_id,
+      periodo_id: editForm.periodo_id,
+      penalidade_id: editForm.penalidade_id,
+      pontos: penalidadeEdit?.pontos ?? editando.pontos,
+      data_aplicacao: editForm.data_aplicacao,
+      descricao: editForm.descricao,
+      observacao: editForm.observacao
+    }
+
+    setSavingEdicao(true)
+    try {
+      await penalidadeService.atualizarAplicacao(editando.id, payload)
+      await auditService.registrar({
+        acao: `${profile.nome} editou a penalidade de ${editando.pontos} → ${payload.pontos} pontos (${editando.penalidades?.nome || ''}) na turma ${editando.turmas?.nome || ''}`,
+        tabela: 'aplicacoes_penalidades',
+        registroId: editando.id,
+        tipoOperacao: 'UPDATE',
+        dadosAnteriores: editando,
+        dadosNovos: payload
+      })
+      success('Penalidade atualizada.')
+      setModalEdicao(false)
+      load()
+    } catch (err) {
+      error(err.message || 'Erro ao atualizar penalidade.')
+    } finally {
+      setSavingEdicao(false)
     }
   }
 
@@ -158,7 +220,10 @@ export default function Penalidades() {
       header: 'Ações',
       key: 'acoes',
       render: (a) => (isAdmin || a.professor_id === profile.id) ? (
-        <button className="btn btn-danger btn-sm" onClick={() => confirmarExclusao(a)}>Excluir</button>
+        <div className="row-actions">
+          <button className="btn btn-info btn-sm" onClick={() => abrirEdicao(a)}>Editar</button>
+          <button className="btn btn-danger btn-sm" onClick={() => confirmarExclusao(a)}>Excluir</button>
+        </div>
       ) : null
     }
   ]
@@ -236,10 +301,35 @@ export default function Penalidades() {
         onClose={() => setConfirmExcluir(false)}
         onConfirm={handleDelete}
         title="Excluir penalidade?"
-        message={`Excluir a penalidade de "${excluir?.turmas?.nome}"?`}
+        message={`Excluir a penalidade de "${excluir?.turmas?.nome}"? A exclusão ficará registrada no histórico de alterações com o seu nome.`}
         confirmText="Excluir"
         danger
       />
+
+      <Modal
+        open={modalEdicao}
+        onClose={() => setModalEdicao(false)}
+        title="Editar Penalidade"
+      >
+        <form onSubmit={handleSalvarEdicao} className="modal-form">
+          <Select label="Turma" value={editForm.turma_id} onChange={(e) => setEditForm({ ...editForm, turma_id: e.target.value })} error={editErrors.turma_id} options={turmas.map((t) => ({ value: t.id, label: `${t.nome} - ${t.serie}` }))} placeholder="Selecione a turma" />
+          <Select label="Período" value={editForm.periodo_id} onChange={(e) => setEditForm({ ...editForm, periodo_id: e.target.value })} error={editErrors.periodo_id} options={periodos.map((p) => ({ value: p.id, label: p.nome }))} placeholder="Selecione o período" />
+          <Select label="Penalidade" value={editForm.penalidade_id} onChange={(e) => setEditForm({ ...editForm, penalidade_id: e.target.value })} error={editErrors.penalidade_id} options={catalogo.map((p) => ({ value: p.id, label: `${p.nome} (${p.pontos} pts)` }))} placeholder="Selecione a penalidade" />
+          <Input label="Data" type="date" value={editForm.data_aplicacao} onChange={(e) => setEditForm({ ...editForm, data_aplicacao: e.target.value })} error={editErrors.data_aplicacao} />
+          <Input label="Descrição" value={editForm.descricao} onChange={(e) => setEditForm({ ...editForm, descricao: e.target.value })} placeholder="Descrição da ocorrência" />
+          <Input label="Observação / Evidência" value={editForm.observacao} onChange={(e) => setEditForm({ ...editForm, observacao: e.target.value })} placeholder="Detalhes, justificativa" />
+          {penalidadeEdit && (
+            <div className="penalidade-info">
+              <Badge color="danger">{penalidadeEdit.pontos} pontos</Badge>
+              <p className="penalidade-desc">{penalidadeEdit.descricao}</p>
+            </div>
+          )}
+          <div className="form-actions">
+            <Button variant="ghost" onClick={() => setModalEdicao(false)}>Cancelar</Button>
+            <Button type="submit" loading={savingEdicao}>Salvar alterações</Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }
