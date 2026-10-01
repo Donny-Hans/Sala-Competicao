@@ -18,13 +18,19 @@ create table if not exists public.profiles (
   nome text not null,
   usuario text unique,
   email text not null,
-  role text not null default 'professor' check (role in ('admin','professor')),
+  role text not null default 'professor' check (role in ('admin','coordenador','professor')),
   ativo boolean not null default true,
   created_at timestamptz not null default now()
 );
 
 -- Migração: adiciona a coluna "usuario" caso a tabela já exista sem ela.
 alter table public.profiles add column if not exists usuario text unique;
+
+-- Migração: passa a aceitar a role 'coordenador' (o check inline acima só
+-- vale na criação da tabela). O drop + add é idempotente.
+alter table public.profiles drop constraint if exists profiles_role_check;
+alter table public.profiles add constraint profiles_role_check
+  check (role in ('admin','coordenador','professor'));
 
 -- ------------------------------------------------------------
 -- TRIGGER: cria automaticamente um perfil quando um novo
@@ -197,6 +203,21 @@ as $$
 $$;
 
 -- ------------------------------------------------------------
+-- HELPER: função para checar se usuário é coordenador pedagógico
+-- ------------------------------------------------------------
+create or replace function public.is_coordenador()
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.profiles p
+    where p.user_id = auth.uid() and p.role = 'coordenador' and p.ativo = true
+  );
+$$;
+
+-- ------------------------------------------------------------
 -- HELPER: função para checar se usuário é professor ativo
 -- ------------------------------------------------------------
 create or replace function public.is_professor()
@@ -208,6 +229,24 @@ as $$
   select exists (
     select 1 from public.profiles p
     where p.user_id = auth.uid() and p.ativo = true
+  );
+$$;
+
+-- ------------------------------------------------------------
+-- HELPER: perfil com poder de gestão (admin OU coordenador).
+-- O coordenador supervisiona a competição: gerencia turmas, alunos
+-- e períodos e lê toda a auditoria, mas NÃO mexe em usuários,
+-- critérios/configurações nem em lançamentos de terceiros.
+-- ------------------------------------------------------------
+create or replace function public.is_gestor()
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.profiles p
+    where p.user_id = auth.uid() and p.role in ('admin','coordenador') and p.ativo = true
   );
 $$;
 
@@ -295,11 +334,12 @@ alter table public.audit_logs enable row level security;
 
 -- ------------------------------------------------------------
 -- RLS: PROFILES
--- Usuário pode ver seu próprio perfil; admin vê todos.
+-- Usuário pode ver seu próprio perfil; admin e coordenador vêem todos
+-- (necessário para exibir o nome do responsável nos lançamentos).
 -- ------------------------------------------------------------
 drop policy if exists "profiles_select_own" on public.profiles;
 create policy "profiles_select_own" on public.profiles
-  for select using (auth.uid() = user_id or public.is_admin());
+  for select using (auth.uid() = user_id or public.is_gestor());
 
 drop policy if exists "profiles_insert_own" on public.profiles;
 create policy "profiles_insert_own" on public.profiles
@@ -360,22 +400,26 @@ create policy "alunos_delete_professor" on public.alunos
 
 -- ------------------------------------------------------------
 -- RLS: PERIODOS
+-- Leitura para todos; escrita para admin e coordenador.
 -- ------------------------------------------------------------
 drop policy if exists "periodos_select" on public.periodos;
 create policy "periodos_select" on public.periodos
   for select using (public.is_professor());
 
 drop policy if exists "periodos_insert_admin" on public.periodos;
-create policy "periodos_insert_admin" on public.periodos
-  for insert with check (public.is_admin());
+drop policy if exists "periodos_insert_gestor" on public.periodos;
+create policy "periodos_insert_gestor" on public.periodos
+  for insert with check (public.is_gestor());
 
 drop policy if exists "periodos_update_admin" on public.periodos;
-create policy "periodos_update_admin" on public.periodos
-  for update using (public.is_admin()) with check (public.is_admin());
+drop policy if exists "periodos_update_gestor" on public.periodos;
+create policy "periodos_update_gestor" on public.periodos
+  for update using (public.is_gestor()) with check (public.is_gestor());
 
 drop policy if exists "periodos_delete_admin" on public.periodos;
-create policy "periodos_delete_admin" on public.periodos
-  for delete using (public.is_admin());
+drop policy if exists "periodos_delete_gestor" on public.periodos;
+create policy "periodos_delete_gestor" on public.periodos
+  for delete using (public.is_gestor());
 
 -- ------------------------------------------------------------
 -- RLS: CRITERIOS (leitura para todos, gerenciamento admin)
@@ -417,8 +461,9 @@ create policy "penalidades_delete_admin" on public.penalidades
 
 -- ------------------------------------------------------------
 -- RLS: PONTUACOES
--- Professores podem inserir e alterar/excluir apenas os PRÓPRIOS
--- lançamentos; admin altera/exclui qualquer um.
+-- Todos os perfis ativos leem e lançam; UPDATE/DELETE seguem a regra
+-- de AUTORIA: o professor e o coordenador alteram/excluem apenas os
+-- PRÓPRIOS lançamentos; admin altera/exclui qualquer um.
 -- ------------------------------------------------------------
 drop policy if exists "pontuacoes_select" on public.pontuacoes;
 create policy "pontuacoes_select" on public.pontuacoes
@@ -441,8 +486,8 @@ create policy "pontuacoes_delete_professor" on public.pontuacoes
 
 -- ------------------------------------------------------------
 -- RLS: APLICACOES_PENALIDADES
--- Professores podem inserir e alterar/excluir apenas as PRÓPRIAS
--- aplicações; admin altera/exclui qualquer uma.
+-- Mesma regra das pontuações: todos lançam, mas só o dono (ou o
+-- admin) altera/exclui.
 -- ------------------------------------------------------------
 drop policy if exists "ap_select" on public.aplicacoes_penalidades;
 create policy "ap_select" on public.aplicacoes_penalidades
@@ -465,17 +510,18 @@ create policy "ap_delete_professor" on public.aplicacoes_penalidades
 
 -- ------------------------------------------------------------
 -- RLS: AUDIT_LOGS
--- Qualquer professor logado grava; admin lê todos e professor lê
--- apenas os próprios registros (rastreabilidade de quem lançou e
--- quem excluiu cada lançamento).
+-- Qualquer professor logado grava; admin e coordenador leem todos e
+-- professor lê apenas os próprios registros (rastreabilidade de quem
+-- lançou e quem excluiu cada lançamento).
 -- ------------------------------------------------------------
 drop policy if exists "audit_insert" on public.audit_logs;
 create policy "audit_insert" on public.audit_logs
   for insert with check (public.is_professor());
 
 drop policy if exists "audit_select_admin" on public.audit_logs;
-create policy "audit_select_admin" on public.audit_logs
-  for select using (public.is_admin());
+drop policy if exists "audit_select_gestor" on public.audit_logs;
+create policy "audit_select_gestor" on public.audit_logs
+  for select using (public.is_gestor());
 
 drop policy if exists "audit_select_own" on public.audit_logs;
 create policy "audit_select_own" on public.audit_logs

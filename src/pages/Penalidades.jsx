@@ -27,7 +27,7 @@ const estadoInicial = {
 }
 
 export default function Penalidades() {
-  const { profile, isAdmin } = useAuth()
+  const { profile, isAdmin, isGestor } = useAuth()
   const { success, error } = useToast()
 
   const [turmas, setTurmas] = useState([])
@@ -278,7 +278,7 @@ export default function Penalidades() {
         {aplicacoes.length > 0 ? (
           <Table
             columns={columns}
-            data={aplicacoes.filter((a) => isAdmin || a.professor_id === profile.id)}
+            data={aplicacoes.filter((a) => isGestor || a.professor_id === profile.id)}
           />
         ) : (
           <EmptyState icon="⚠️" title="Nenhuma penalidade aplicada" />

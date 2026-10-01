@@ -5,6 +5,7 @@ import { useToast } from '../contexts/ToastContext'
 import { useNavigate } from 'react-router-dom'
 import { initials } from '../utils/format'
 import Badge from './Badge'
+import { roleBadgeColor, roleLabel } from '../utils/roles'
 
 export default function Navbar({ onMenuClick, title }) {
   const { user, profile, isAdmin } = useAuth()
@@ -54,8 +55,8 @@ export default function Navbar({ onMenuClick, title }) {
             </div>
             <div className="navbar-user-info">
               <span className="navbar-user-name">{profile?.nome || user?.email}</span>
-              <Badge color={isAdmin ? 'primary' : 'info'}>
-                {isAdmin ? 'Administrador' : 'Professor'}
+              <Badge color={roleBadgeColor(profile?.role)}>
+                {roleLabel(profile?.role)}
               </Badge>
             </div>
             <svg className="navbar-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

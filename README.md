@@ -233,9 +233,9 @@ O arquivo `schema.sql` já insere:
 - **Nunca publique o `.env`** — ele contém credenciais.
 - **Use apenas a chave `anon`/public** no frontend. NUNCA use a `service_role key`.
 - **RLS (Row Level Security)** está habilitado em todas as tabelas, protegendo os dados no nível do banco de dados — não apenas na interface.
-- **Controle de permissões**: apenas administradores alteram/excluem dados cadastrais e configurações. Lançamentos de pontos e penalidades seguem a regra de **autoria**: o professor edita e exclui **apenas o que ele mesmo lançou**; o administrador edita e exclui qualquer lançamento.
+- **Controle de permissões**: apenas administradores alteram/excluem usuários, critérios e configurações; o **coordenador pedagógico** gerencia turmas, alunos e períodos. Lançamentos de pontos e penalidades seguem a regra de **autoria**: o professor e o coordenador editam e excluem **apenas o que eles mesmos lançaram**; o administrador edita e exclui qualquer lançamento.
 - **Não confie somente no frontend**: além das validações no React, o banco possui validações e RLS.
-- **Auditoria**: toda operação registra um log na tabela `audit_logs` (usuário, ação, tabela, dados anteriores/novos, data/hora). Cada lançamento guarda o **professor que o criou** (`professor_id`) e cada exclusão fica registrada com o **nome de quem excluiu** — o administrador vê todos os logs em **Configurações**, e cada professor vê os próprios na seção **"Minhas alterações"** da página **Histórico**.
+- **Auditoria**: toda operação registra um log na tabela `audit_logs` (usuário, ação, tabela, dados anteriores/novos, data/hora). Cada lançamento guarda o **professor que o criou** (`professor_id`) e cada exclusão fica registrada com o **nome de quem excluiu** — o administrador e o coordenador veem todos os logs (em **Configurações** e em **Relatórios**), e cada professor vê os próprios na seção **"Minhas alterações"** da página **Histórico**.
 
 ---
 
@@ -375,7 +375,8 @@ classe-ouro/
 ## 13. Funcionamento
 
 - **Login** com Supabase Auth (e-mail/senha), recuperação de senha e sessão persistente.
-- **Perfis**: `admin` (controle total) e `professor` (lançamentos e consultas).
+- **Perfis**: `admin` (controle total), `coordenador` (supervisão pedagógica) e `professor` (lançamentos e consultas).
+  - **Coordenador pedagógico**: lança pontos e penalidades como o professor, mas **visualiza todos** os lançamentos e todo o histórico de alterações (inclusive exclusões), tem acesso aos **Relatórios** e gerencia **turmas, alunos e períodos**. Não gerencia usuários, critérios nem configurações e **não edita/exclui lançamentos de terceiros** — só os próprios.
 - **Turmas** e **alunos**: CRUD completo, com ativar/desativar e transferência de alunos.
 - **Períodos**: cadastro das etapas da competição.
 - **Critérios**: tabela oficial (Anexo 1) configurável pelo administrador.

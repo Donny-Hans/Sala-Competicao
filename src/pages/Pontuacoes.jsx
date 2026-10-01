@@ -27,7 +27,7 @@ const estadoEdicaoInicial = {
 }
 
 export default function Pontuacoes() {
-  const { profile, isAdmin } = useAuth()
+  const { profile, isAdmin, isGestor } = useAuth()
   const { success, error } = useToast()
 
   const [turmas, setTurmas] = useState([])
@@ -171,7 +171,7 @@ export default function Pontuacoes() {
   }
 
   let visiveis = lancamentos
-  if (!isAdmin) visiveis = visiveis.filter((p) => p.professor_id === profile.id)
+  if (!isGestor) visiveis = visiveis.filter((p) => p.professor_id === profile.id)
   if (form.turma_id) visiveis = visiveis.filter((p) => p.turma_id === form.turma_id)
   if (form.periodo_id) visiveis = visiveis.filter((p) => p.periodo_id === form.periodo_id)
 

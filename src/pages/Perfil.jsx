@@ -3,10 +3,11 @@ import { useAuth } from '../contexts/AuthContext'
 import { authService } from '../services/authService'
 import { useToast } from '../contexts/ToastContext'
 import { initials, formatDate } from '../utils/format'
+import { roleBadgeColor, roleLabel } from '../utils/roles'
 import Badge from '../components/Badge'
 
 export default function Perfil() {
-  const { user, profile, isAdmin } = useAuth()
+  const { user, profile } = useAuth()
   const { success, error } = useToast()
   const [novaSenha, setNovaSenha] = React.useState('')
   const [loading, setLoading] = React.useState(false)
@@ -41,8 +42,8 @@ export default function Perfil() {
           <div className="profile-header">
             <div className="profile-avatar">{initials(profile?.nome || user?.email)}</div>            <div>
               <h2 className="profile-name">{profile?.nome || 'Usuário'}</h2>
-              <Badge color={isAdmin ? 'primary' : 'info'}>
-                {isAdmin ? 'Administrador' : 'Professor'}
+              <Badge color={roleBadgeColor(profile?.role)}>
+                {roleLabel(profile?.role)}
               </Badge>
             </div>
           </div>
@@ -58,7 +59,7 @@ export default function Perfil() {
             </div>
             <div className="profile-detail">
               <span className="profile-label">Perfil de acesso</span>
-              <span className="profile-value">{isAdmin ? 'Administrador' : 'Professor'}</span>
+              <span className="profile-value">{roleLabel(profile?.role)}</span>
             </div>
             <div className="profile-detail">
               <span className="profile-label">Status</span>

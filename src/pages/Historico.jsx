@@ -39,7 +39,7 @@ const rotuloOperacao = (op) =>
   op === 'INSERT' ? 'Lançamento' : op === 'UPDATE' ? 'Edição' : 'Exclusão'
 
 export default function Historico() {
-  const { profile, isAdmin } = useAuth()
+  const { profile, isAdmin, isGestor } = useAuth()
   const { success, error } = useToast()
 
   const [pontuacoes, setPontuacoes] = useState([])
@@ -127,7 +127,7 @@ export default function Historico() {
 
   let combinado = [...pontuacoes, ...penalidades].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 
-  if (!isAdmin) {
+  if (!isGestor) {
     combinado = combinado.filter((c) => c.professor_id === profile.id)
   }
 
@@ -155,6 +155,7 @@ export default function Historico() {
     return { value: id, label: item?.professor }
   })
 
+  // Regra de autoria: só o admin edita/exclui lançamentos de terceiros.
   const podeEditar = (c) => isAdmin || c.professor_id === profile.id
 
   function abrirEdicao(c) {
@@ -351,7 +352,7 @@ export default function Historico() {
       <div className="toolbar toolbar-wrap">
         <SearchInput value={search} onChange={setSearch} placeholder="Pesquisar em todos os campos..." />
         <Select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)} options={[{ value: 'positivo', label: 'Positivos' }, { value: 'penalidade', label: 'Penalidades' }]} placeholder="Todos os tipos" className="width-160" />
-        {isAdmin && (
+        {isGestor && (
           <Select value={filtroProfessor} onChange={(e) => setFiltroProfessor(e.target.value)} options={professores} placeholder="Todos os professores" className="width-200" />
         )}
         <Input type="date" value={filtroData} onChange={(e) => setFiltroData(e.target.value)} className="width-180" label="" />

@@ -18,7 +18,7 @@ import { validators } from '../utils/validators'
 const estadoInicial = { nome: '', data_inicio: dataAtualISO(), data_fim: dataAtualISO(), status: 'planejado' }
 
 export default function Periodos() {
-  const { isAdmin } = useAuth()
+  const { isGestor } = useAuth()
   const { success, error } = useToast()
   const [periodos, setPeriodos] = useState([])
   const [loading, setLoading] = useState(true)
@@ -122,7 +122,7 @@ export default function Periodos() {
         {p.status}
       </Badge>
     ) },
-    { header: 'Ações', key: 'acoes', render: (p) => isAdmin ? (
+    { header: 'Ações', key: 'acoes', render: (p) => isGestor ? (
       <div className="row-actions">
         <button className="btn btn-info btn-sm" onClick={() => abrirEdicao(p)}>Editar</button>
         <button className="btn btn-danger btn-sm" onClick={() => { setRemover(p); setConfirmOpen(true) }}>Excluir</button>
@@ -137,14 +137,14 @@ export default function Periodos() {
           <h1 className="page-title">📅 Períodos</h1>
           <p className="page-subtitle">Gerenciar os períodos da competição.</p>
         </div>
-        {isAdmin && <Button onClick={abrirNovo}>+ Novo Período</Button>}
+        {isGestor && <Button onClick={abrirNovo}>+ Novo Período</Button>}
       </div>
 
       {loading ? <Loading skeleton /> : (
         periodos.length > 0 ? (
           <div className="card"><Table columns={columns} data={periodos} /></div>
         ) : (
-          <EmptyState icon="📅" title="Nenhum período cadastrado" action={isAdmin && <Button onClick={abrirNovo}>+ Novo Período</Button>} />
+          <EmptyState icon="📅" title="Nenhum período cadastrado" action={isGestor && <Button onClick={abrirNovo}>+ Novo Período</Button>} />
         )
       )}
 

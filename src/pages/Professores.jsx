@@ -14,6 +14,7 @@ import EmptyState from '../components/EmptyState'
 import SearchInput from '../components/SearchInput'
 import { formatDate } from '../utils/format'
 import { validators } from '../utils/validators'
+import { ROLE_OPTIONS, roleBadgeColor, roleLabel } from '../utils/roles'
 
 const DOMAIN = 'classe-ouro.app'
 
@@ -131,13 +132,13 @@ export default function Professores() {
     { header: 'Nome', key: 'nome' },
     { header: 'Usuário', key: 'usuario' },
     { header: 'Perfil', key: 'role', render: (p) => (
-      <Badge color={p.role === 'admin' ? 'primary' : 'info'}>{p.role === 'admin' ? 'Administrador' : 'Professor'}</Badge>
+      <Badge color={roleBadgeColor(p.role)}>{roleLabel(p.role)}</Badge>
     ) },
     { header: 'Status', key: 'ativo', render: (p) => <Badge>{p.ativo}</Badge> },
     { header: 'Cadastro', key: 'created_at', render: (p) => formatDate(p.created_at) },
     { header: 'Ações', key: 'acoes', render: (p) => (
       <div className="row-actions">
-        <Select value={p.role} onChange={(e) => updateRole(p, e.target.value)} options={['professor', 'admin']} className="width-120 compact" />
+        <Select value={p.role} onChange={(e) => updateRole(p, e.target.value)} options={ROLE_OPTIONS} className="width-160 compact" />
         <button className={`btn btn-${p.ativo ? 'warning' : 'success'} btn-sm`} onClick={() => toggleAtivo(p)}>
           {p.ativo ? 'Desativar' : 'Ativar'}
         </button>
@@ -172,7 +173,7 @@ export default function Professores() {
           <Input label="Nome completo" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} error={errors.nome} />
           <Input label="Nome de usuário" value={form.usuario} onChange={(e) => setForm({ ...form, usuario: e.target.value })} error={errors.usuario} placeholder="Ex: prof.carla" />
           <Input label="Senha inicial" type="password" value={form.senha} onChange={(e) => setForm({ ...form, senha: e.target.value })} error={errors.senha} hint="Mínimo de 6 caracteres" />
-          <Select label="Perfil" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} options={['professor', 'admin']} />
+          <Select label="Perfil" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} options={ROLE_OPTIONS} />
           <p className="info-note">O usuário acessará o sistema com o nome de usuário e a senha definidos.</p>
           <div className="form-actions">
             <Button variant="ghost" onClick={() => setModalOpen(false)}>Cancelar</Button>

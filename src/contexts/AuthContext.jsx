@@ -58,12 +58,16 @@ export function AuthProvider({ children }) {
   }, [loadProfile])
 
   const isAdmin = profile?.role === 'admin'
+  const isCoordenador = profile?.role === 'coordenador'
+  const isGestor = isAdmin || isCoordenador
 
   const value = {
     user,
     profile,
     loading,
     isAdmin,
+    isCoordenador,
+    isGestor,
     setUser,
     setProfile,
     refreshProfile: async () => {

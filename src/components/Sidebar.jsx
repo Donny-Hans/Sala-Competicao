@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function Sidebar({ open, onClose, collapsed = false, onToggleCollapsed }) {
-  const { isAdmin } = useAuth()
+  const { isAdmin, isGestor } = useAuth()
 
   const itens = [
     { to: '/dashboard', icon: '🏠', label: 'Dashboard' },
@@ -14,7 +14,8 @@ export default function Sidebar({ open, onClose, collapsed = false, onToggleColl
     { to: '/pontuacoes', icon: '⭐', label: 'Pontuações' },
     { to: '/penalidades', icon: '⚠️', label: 'Penalidades' },
     { to: '/ranking', icon: '🏆', label: 'Ranking' },
-    ...(isAdmin ? [{ to: '/relatorios', icon: '📊', label: 'Relatórios' }, { to: '/criterios', icon: '📋', label: 'Critérios' }] : []),
+    ...(isGestor ? [{ to: '/relatorios', icon: '📊', label: 'Relatórios' }] : []),
+    ...(isAdmin ? [{ to: '/criterios', icon: '📋', label: 'Critérios' }] : []),
     { to: '/historico', icon: '📜', label: 'Histórico' },
     { to: '/premiacao', icon: '🎉', label: 'Premiação' },
     ...(isAdmin ? [{ to: '/configuracoes', icon: '⚙️', label: 'Configurações' }] : []),

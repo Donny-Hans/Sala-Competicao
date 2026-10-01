@@ -51,7 +51,7 @@ function App() {
         <Route path="penalidades" element={<Penalidades />} />
         <Route path="ranking" element={<Ranking />} />
         <Route path="historico" element={<Historico />} />
-        <Route path="relatorios" element={<Relatorios />} />
+        <Route path="relatorios" element={<ProtectedRoute gestorOnly><Relatorios /></ProtectedRoute>} />
         <Route path="premiacao" element={<Premiacao />} />
         <Route path="perfil" element={<Perfil />} />
         <Route path="configuracoes" element={<ProtectedRoute adminOnly><Configuracoes /></ProtectedRoute>} />
