@@ -47,7 +47,7 @@ export default function Pontuacoes() {
   const [errors, setErrors] = useState({})
   const [maxPontos, setMaxPontos] = useState(0)
   const [acumulado, setAcumulado] = useState(0)
-  const [disponivel, setDisponivel] = useState(maxPontos)
+  const [disponivel, setDisponivel] = useState(Infinity)
   const [somaCriterio, setSomaCriterio] = useState(0)
 
   const [editando, setEditando] = useState(null)
@@ -101,18 +101,18 @@ export default function Pontuacoes() {
             .reduce((s, p) => s + p.pontos, 0)
           setSomaCriterio(soma)
           setAcumulado(data.reduce((s, p) => s + p.pontos, 0))
-          setDisponivel(maxPontos - soma)
+          setDisponivel(Infinity)
         } catch (err) {
           console.error(err)
         }
       } else {
         setSomaCriterio(0)
         setAcumulado(0)
-        setDisponivel(maxPontos)
+        setDisponivel(Infinity)
       }
     }
     calcularAcumulado()
-  }, [form.turma_id, form.criterio_id, form.periodo_id, maxPontos])
+  }, [form.turma_id, form.criterio_id, form.periodo_id])
 
   function handleChange(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -127,12 +127,8 @@ export default function Pontuacoes() {
     errs.criterio_id = validators.required(form.criterio_id, 'Critério')
     errs.pontos = validators.number(form.pontos, 'Pontuação')
 
-    if (!errs.pontos && maxPontos > 0) {
-      errs.pontos = validators.pontuacao(form.pontos, maxPontos)
-    }
-
-    if (!errs.pontos && form.pontos && Number(form.pontos) > disponivel) {
-      errs.pontos = `Limite restante para este critério/período: ${disponivel} pontos. Você já lançou ${somaCriterio}.`
+    if (!errs.pontos) {
+      errs.pontos = validators.pontuacao(form.pontos, Infinity)
     }
 
     setErrors(errs)
@@ -199,7 +195,7 @@ export default function Pontuacoes() {
           editando.periodo_id === editForm.periodo_id
             ? editando.pontos
             : 0
-        if (!cancelado) setEditDisponivel(criterioEdit.pontos_maximos - (soma - proprio))
+        if (!cancelado) setEditDisponivel(Infinity)
       } catch {
         if (!cancelado) setEditDisponivel(null)
       }
@@ -227,10 +223,7 @@ export default function Pontuacoes() {
     errs.periodo_id = validators.required(editForm.periodo_id, 'Período')
     errs.turma_id = validators.required(editForm.turma_id, 'Turma')
     errs.criterio_id = validators.required(editForm.criterio_id, 'Critério')
-    errs.pontos = validators.pontuacao(editForm.pontos, criterioEdit?.pontos_maximos || Infinity)
-    if (!errs.pontos && editDisponivel !== null && Number(editForm.pontos) > editDisponivel) {
-      errs.pontos = `Limite restante para este critério/período: ${editDisponivel} pontos.`
-    }
+    errs.pontos = validators.pontuacao(editForm.pontos, Infinity)
     setEditErrors(errs)
     if (Object.values(errs).some(Boolean)) return
 
@@ -318,7 +311,7 @@ export default function Pontuacoes() {
             <Select label="Período" value={form.periodo_id} onChange={(e) => handleChange('periodo_id', e.target.value)} error={errors.periodo_id} options={periodos.map((p) => ({ value: p.id, label: p.nome }))} placeholder="Selecione o período" />
             <Select label="Turma" value={form.turma_id} onChange={(e) => handleChange('turma_id', e.target.value)} error={errors.turma_id} options={turmas.map((t) => ({ value: t.id, label: `${t.nome} - ${t.serie}` }))} placeholder="Selecione a turma" />
             <Select label="Critério" value={form.criterio_id} onChange={(e) => handleChange('criterio_id', e.target.value)} error={errors.criterio_id} options={criterios.map((c) => ({ value: c.id, label: `${c.nome} (${c.categoria})` }))} placeholder="Selecione o critério" />
-            <Input label="Pontuação" type="number" min="0" max={maxPontos || undefined} value={form.pontos} onChange={(e) => handleChange('pontos', e.target.value)} placeholder="0" error={errors.pontos} hint={maxPontos > 0 ? `Máximo: ${maxPontos} pontos` : undefined} />
+            <Input label="Pontuação" type="number" min="1" value={form.pontos} onChange={(e) => handleChange('pontos', e.target.value)} placeholder="0" error={errors.pontos} />
             <Input label="Observação" value={form.observacao} onChange={(e) => handleChange('observacao', e.target.value)} placeholder="Observação opcional" />
             <Button type="submit" loading={saving} fullWidth>Registrar pontuação</Button>
           </div>
@@ -326,18 +319,10 @@ export default function Pontuacoes() {
           <div className="form-column">
             <div className="summary-panel">
               <h3 className="summary-title">Resumo</h3>
-              <div className="summary-item">
-                <span>Pontos máximos do critério</span>
-                <strong className="summary-value">{maxPontos} pts</strong>
-              </div>
-              <div className="summary-item">
-                <span>Já lançados (este período)</span>
-                <strong>{somaCriterio} pts</strong>
-              </div>
-              <div className="summary-item">
-                <span>Disponível</span>
-                <strong className={disponivel <= 0 ? 'text-negative' : 'text-positive'}>{disponivel} pts</strong>
-              </div>
+               <div className="summary-item">
+                 <span>Já lançados neste critério (período)</span>
+                 <strong>{somaCriterio} pts</strong>
+               </div>
               <hr />
               <div className="summary-item">
                 <span>Total acumulado da turma</span>
@@ -383,11 +368,9 @@ export default function Pontuacoes() {
             label="Pontuação"
             type="number"
             min="1"
-            max={criterioEdit?.pontos_maximos || undefined}
             value={editForm.pontos}
             onChange={(e) => setEditForm({ ...editForm, pontos: e.target.value })}
             error={editErrors.pontos}
-            hint={criterioEdit ? `Máximo: ${criterioEdit.pontos_maximos} pontos${editDisponivel !== null ? ` · disponível: ${editDisponivel}` : ''}` : undefined}
           />
           <Input label="Observação" value={editForm.observacao} onChange={(e) => setEditForm({ ...editForm, observacao: e.target.value })} />
           <div className="form-actions">

@@ -178,35 +178,12 @@ export default function Historico() {
   const penalidadeEdicao = catalogo.find((p) => p.id === editForm.penalidade_id)
 
   useEffect(() => {
-    if (!modalEdicao || !editando || editando.tipo !== 'positivo' || !criterioEdicao) {
+    if (!modalEdicao || !editando || editando.tipo !== 'positivo') {
       setEditDisponivel(null)
       return
     }
-    if (!editForm.turma_id || !editForm.periodo_id) {
-      setEditDisponivel(null)
-      return
-    }
-    let cancelado = false
-    async function calcular() {
-      try {
-        const data = await pontuacaoService.somaPorCriterio(editForm.turma_id, editForm.periodo_id)
-        const soma = data
-          .filter((p) => p.criterio_id === editForm.criterio_id)
-          .reduce((s, p) => s + p.pontos, 0)
-        const proprio =
-          editando.criterio_id === editForm.criterio_id &&
-          editando.turma_id === editForm.turma_id &&
-          editando.periodo_id === editForm.periodo_id
-            ? editando.pontos
-            : 0
-        if (!cancelado) setEditDisponivel(criterioEdicao.pontos_maximos - (soma - proprio))
-      } catch {
-        if (!cancelado) setEditDisponivel(null)
-      }
-    }
-    calcular()
-    return () => { cancelado = true }
-  }, [modalEdicao, editando, editForm.turma_id, editForm.periodo_id, editForm.criterio_id, criterioEdicao])
+    setEditDisponivel(Infinity)
+  }, [modalEdicao, editando])
 
   async function handleSalvarEdicao(e) {
     e.preventDefault()
@@ -220,10 +197,7 @@ export default function Historico() {
 
     if (editando.tipo === 'positivo') {
       errs.criterio_id = validators.required(editForm.criterio_id, 'Critério')
-      errs.pontos = validators.pontuacao(editForm.pontos, criterioEdicao?.pontos_maximos || Infinity)
-      if (!errs.pontos && editDisponivel !== null && Number(editForm.pontos) > editDisponivel) {
-        errs.pontos = `Limite restante para este critério/período: ${editDisponivel} pontos.`
-      }
+      errs.pontos = validators.pontuacao(editForm.pontos, Infinity)
       payload = {
         turma_id: editForm.turma_id,
         periodo_id: editForm.periodo_id,
@@ -395,11 +369,9 @@ export default function Historico() {
                 label="Pontuação"
                 type="number"
                 min="1"
-                max={criterioEdicao?.pontos_maximos || undefined}
                 value={editForm.pontos}
                 onChange={(e) => setEditForm({ ...editForm, pontos: e.target.value })}
                 error={editErrors.pontos}
-                hint={criterioEdicao ? `Máximo: ${criterioEdicao.pontos_maximos} pontos${editDisponivel !== null ? ` · disponível: ${editDisponivel}` : ''}` : undefined}
               />
               <Input label="Observação" value={editForm.observacao} onChange={(e) => setEditForm({ ...editForm, observacao: e.target.value })} />
             </>

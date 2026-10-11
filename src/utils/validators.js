@@ -45,10 +45,9 @@ export const validators = {
     return null
   },
 
-  pontuacao(value, pontosMaximos) {
+  pontuacao(value, _pontosMaximos) {
     const n = Number(value)
     if (isNaN(n) || n <= 0) return 'Informe uma pontuação válida (maior que zero).'
-    if (n > pontosMaximos) return `A pontuação não pode ultrapassar ${pontosMaximos} pontos para este critério.`
     return null
   }
 }
